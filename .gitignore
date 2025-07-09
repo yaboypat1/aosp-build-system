@@ -1,0 +1,106 @@
+# Android 16 AOSP Build System .gitignore
+
+# Build outputs
+out/
+*.img
+*.zip
+*.tar.gz
+*.tar.xz
+
+# AOSP source code (too large for git)
+aosp/
+
+# Custom ROM sources
+custom_roms/
+
+# Build logs
+build.log
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# ccache directory
+.ccache/
+
+# Backup files
+backup_*.tar.gz
+*.bak
+*.backup
+
+# Device-specific configurations (may contain sensitive info)
+device_configs/*/proprietary-files.txt
+device_configs/*/vendor_blobs/
+
+# Local manifest files (may contain private repos)
+local_manifest.xml
+.repo/local_manifests/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.local
+
+# Personal notes and TODO files
+TODO.md
+NOTES.md
+personal_*
+
+# Downloaded files
+downloads/
+*.deb
+*.rpm
+
+# Test outputs
+test_results/
+coverage/
+
+# Documentation build outputs
+docs/_build/
+docs/.doctrees/
+
+# Patches that might contain sensitive information
+patches/*/proprietary_*
+patches/*/vendor_*
+
+# Keys and certificates
+*.key
+*.pem
+*.p12
+*.jks
+keys/
+certs/
+
+# Local configuration overrides
+local_config.sh
+*_local.sh
+
+# ROM-specific temporary files
+lineage_*
+evolution_*
+crdroid_*
+arrow_*
+
+# Flash tool outputs
+flash_*.log
+fastboot_*.log
+
+# System information dumps
+system_info_*.txt
+build_info_*.txt
