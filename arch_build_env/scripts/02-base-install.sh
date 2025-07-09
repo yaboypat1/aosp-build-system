@@ -16,6 +16,6 @@ error() { echo -e "${C_RED}ERROR: $1${C_RESET}"; exit 1; }
 pacstrap /mnt base linux linux-firmware base-devel git vim sudo networkmanager || error "Failed to install base packages."
 
 # 3. Generate fstab
-genfatab -U /mnt >> /mnt/etc/fstab || error "Failed to generate fstab."
+genfstab -U /mnt >> /mnt/etc/fstab || error "Failed to generate fstab."
 
 echo "Base system installation complete."
