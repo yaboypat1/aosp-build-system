@@ -15,6 +15,14 @@ fi
 
 DISK=$1
 
+# Unmount any existing partitions on the target disk to prevent errors
+umount -R /mnt &>/dev/null || true
+for part in $(lsblk -nr -o NAME -p "$DISK"); do
+    if [[ "$part" != "$DISK" ]]; then
+        umount "$part" &>/dev/null || true
+    fi
+done
+
 # 1. Wipe the disk and create a new GPT partition table
 sgdisk --zap-all "$DISK" || error "Failed to zap disk $DISK."
 sgdisk --clear "$DISK" || error "Failed to clear partition table on $DISK."
