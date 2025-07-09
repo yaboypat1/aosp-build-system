@@ -51,7 +51,6 @@ EOF
 
 # 6. Enable essential services
 systemctl enable NetworkManager
-systemctl enable sddm
 
 # 7. Create User and Set Password
 useradd -m -g users -G wheel,storage,power -s /bin/bash "$USERNAME"
@@ -62,22 +61,32 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # --- Software Installation ---
 
-# 8. Install KDE Plasma and Applications
-pacman -Syu --noconfirm --needed \
+# 8. Enable Multilib repository for 32-bit libraries
+sed -i "/^\[multilib\]$/,/^\[/ s/^#//" /etc/pacman.conf
+
+# 9. Synchronize package databases
+pacman -Syyu --noconfirm
+
+# 10. Install KDE Plasma and Applications
+pacman -S --noconfirm --needed \
     plasma-desktop sddm konsole dolphin kate firefox \
     gwenview spectacle okular ark p7zip unrar \
     noto-fonts noto-fonts-cjk noto-fonts-emoji \
     htop neofetch gparted code || error "Failed to install KDE packages."
 
-# 9. Install Android Build Dependencies
+# 11. Install Android Build Dependencies
+# Note: 'repo' is in the AUR. We will install it manually after first boot.
 pacman -S --noconfirm --needed \
-    jdk11-openjdk git gnupg flex bison gperf build-essential \
-    zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
-    lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev ccache \
-    libgl1-mesa-dev libxml2-utils xsltproc unzip schedtool python-is-python3 \
-    repo || error "Failed to install Android build dependencies."
+    jdk11-openjdk git gnupg flex bison gperf \
+    zip curl zlib lib32-zlib gcc-multilib g++-multilib \
+    lib32-ncurses libx11 lib32-glibc ccache \
+    libglvnd libxml2 libxslt unzip schedtool python-setuptools \
+    || error "Failed to install Android build dependencies."
 
-# 10. Install VM Guest Utilities
+# 12. Enable the graphical login manager now that it's installed
+systemctl enable sddm
+
+# 13. Install VM Guest Utilities
 # Detect virtualization and install appropriate tools
 if systemd-detect-virt -q --container; then
     echo "Running in a container, skipping guest utils."
@@ -90,7 +99,7 @@ fi
 
 # --- Final Touches ---
 
-# 11. Configure a Windows-like feel for KDE (optional, but nice for the user)
+# 14. Configure a Windows-like feel for KDE (optional, but nice for the user)
 # This is a bit complex to do via script, but we can set some basics.
 # The user can further customize using the GUI.
 
