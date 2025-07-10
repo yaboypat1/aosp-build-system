@@ -68,32 +68,38 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # --- Software Installation ---
 
-# 8. Enable Community and Multilib repositories
+# 8. Enable Multilib and Community repositories
+info "Enabling Community and Multilib repositories..."
 sed -i "/^\[community\]$/,/^\[/ s/^#//" /etc/pacman.conf
 sed -i "/^\[multilib\]$/,/^\[/ s/^#//" /etc/pacman.conf
+success "Repositories enabled."
 
-# 9. Synchronize package databases and install core build tools
-# We run sync twice to ensure network is stable inside chroot.
-pacman -Syyu --noconfirm
-pacman -S --noconfirm --needed base-devel
-pacman -Syyu --noconfirm
+# 9. Synchronize package databases FIRST
+info "Synchronizing package databases..."
+pacman -Syyu --noconfirm || error "Failed to synchronize package databases."
+success "Package databases synchronized."
 
-# 10. Install KDE Plasma, Microcode, and Applications
+# 10. Install core build tools, KDE Plasma, and Applications
+info "Installing core build tools, KDE, and all other software..."
 pacman -S --noconfirm --needed \
+    base-devel \
     intel-ucode amd-ucode \
     plasma-desktop sddm konsole dolphin kate firefox \
     gwenview spectacle okular ark p7zip unrar \
     noto-fonts noto-fonts-cjk noto-fonts-emoji \
-    htop neofetch gparted code || error "Failed to install KDE packages."
+    htop neofetch gparted code \
+    || error "Failed to install core software packages."
+success "KDE and other packages installed."
 
 # 11. Install Android Build Dependencies
-# Note: 'repo' will be installed from the AUR.
+info "Installing Android build dependencies..."
 pacman -S --noconfirm --needed \
     jdk11-openjdk git gnupg flex bison gperf \
     zip curl zlib lib32-zlib gcc-multilib g++-multilib \
     lib32-ncurses libx11 lib32-glibc ccache \
     libglvnd libxml2 libxslt unzip schedtool python-setuptools \
     || error "Failed to install Android build dependencies."
+success "Android dependencies installed."
 
 # 12. Enable the graphical login manager now that it's installed
 systemctl enable sddm
