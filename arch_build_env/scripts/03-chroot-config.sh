@@ -4,8 +4,12 @@
 
 # --- Error Handling & Color Codes ---
 C_RED='\033[0;31m'
+C_GREEN='\033[0;32m'
+C_BLUE='\033[0;34m'
 C_RESET='\033[0m'
 error() { echo -e "${C_RED}ERROR: $1${C_RESET}"; exit 1; }
+info() { echo -e "${C_BLUE}INFO: $1${C_RESET}"; }
+success() { echo -e "${C_GREEN}SUCCESS: $1${C_RESET}"; }
 
 # --- Script Arguments ---
 HOSTNAME=$1
