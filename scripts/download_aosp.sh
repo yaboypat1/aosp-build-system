@@ -95,21 +95,29 @@ download_source() {
     
     JOBS=$(nproc)
     [ "$JOBS" -gt 8 ] && JOBS=8
-    
     log_info "Using $JOBS parallel jobs for download"
-    
-    repo sync \
-        --force-sync \
-        --no-tags \
-        --no-clone-bundle \
-        --optimized-fetch \
-        --prune \
-        -j"$JOBS" \
-        --retry-count=5 \
-        --retry-sleep=20 \
-        --fail-fast
 
-    log_success "AOSP source download completed"
+    # attempt up to 5 times, sleeping 20s between failures
+    for attempt in {1..5}; do
+        if repo sync \
+            --force-sync \
+            --no-tags \
+            --no-clone-bundle \
+            --optimized-fetch \
+            --prune \
+            -j"$JOBS" \
+            --fail-fast; then
+            log_success "AOSP source download completed on attempt $attempt"
+            break
+        else
+            log_warning "Sync attempt $attempt failed; retrying in 20s..."
+            sleep 20
+        fi
+        if [ "$attempt" -eq 5 ]; then
+            log_error "All 5 sync attempts failed. Exiting."
+            exit 1
+        fi
+    done
 }
 
 # Verify download
