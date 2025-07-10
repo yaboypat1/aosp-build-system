@@ -70,8 +70,11 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # 8. Enable Multilib and Community repositories
 info "Enabling Community and Multilib repositories..."
-sed -i "/^\[community\]$/,/^\[/ s/^#//" /etc/pacman.conf
-sed -i "/^\[multilib\]$/,/^\[/ s/^#//" /etc/pacman.conf
+# The user's definitive fix using a more robust, multi-step sed command
+sed -i 's/^#\\[community\\]/[community]/g' /etc/pacman.conf
+sed -i '/\\[community\\]/{n;s/^#//}' /etc/pacman.conf
+sed -i 's/^#\\[multilib\\]/[multilib]/g' /etc/pacman.conf
+sed -i '/\\[multilib\\]/{n;s/^#//}' /etc/pacman.conf
 success "Repositories enabled."
 
 # 9. Synchronize package databases FIRST
