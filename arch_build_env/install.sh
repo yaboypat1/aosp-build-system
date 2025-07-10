@@ -36,7 +36,14 @@ check_internet
 
 info "Updating mirrorlist for faster downloads..."
 pacman -Sy --noconfirm reflector || error "Failed to install reflector."
-reflector --country 'United States','Canada' --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || error "Reflector failed."
+# A more robust reflector command with better filtering and verbose output for debugging
+reflector --verbose --country 'United States','Canada' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || error "Reflector failed to run."
+
+# Verify that the mirrorlist is not empty
+if [ ! -s /etc/pacman.d/mirrorlist ]; then
+    error "Reflector created an empty mirrorlist. Please check network connection and VM settings."
+fi
+
 success "Mirrorlist updated."
 
 info "This script will install and configure a complete Arch Linux system."
