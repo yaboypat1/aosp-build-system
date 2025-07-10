@@ -67,7 +67,10 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 # 8. Enable Multilib repository for 32-bit libraries
 sed -i "/^\[multilib\]$/,/^\[/ s/^#//" /etc/pacman.conf
 
-# 9. Synchronize package databases
+# 9. Synchronize package databases and install core build tools
+# We run sync twice to ensure network is stable inside chroot.
+pacman -Syyu --noconfirm
+pacman -S --noconfirm --needed base-devel
 pacman -Syyu --noconfirm
 
 # 10. Install KDE Plasma, Microcode, and Applications
