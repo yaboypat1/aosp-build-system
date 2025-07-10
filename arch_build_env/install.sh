@@ -34,6 +34,11 @@ echo -e "====================================================="
 
 check_internet
 
+info "Updating mirrorlist for faster downloads..."
+pacman -Sy --noconfirm reflector || error "Failed to install reflector."
+reflector --country 'United States','Canada' --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || error "Reflector failed."
+success "Mirrorlist updated."
+
 info "This script will install and configure a complete Arch Linux system."
 info "Please provide the following information:
 "
@@ -118,4 +123,3 @@ umount -R /mnt
 
 success "Installation is complete!"
 echo -e "${C_YELLOW}You can now reboot your system. Remove the installation media first.${C_RESET}"
-

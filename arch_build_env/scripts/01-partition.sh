@@ -53,7 +53,7 @@ sleep 2 # Wait for the kernel to recognize the new partitions
 
 mkfs.fat -F32 "$EFI_PART" || error "Failed to format EFI partition."
 mkswap "$SWAP_PART" || error "Failed to create swap."
-mkfs.ext4 -F "$ROOT_PART" || error "Failed to format root partition."
+mkfs.ext4 -F -L root "$ROOT_PART" || error "Failed to format root partition."
 
 # 4. Mount the filesystems
 mount "$ROOT_PART" /mnt || error "Failed to mount root partition."
