@@ -15,10 +15,11 @@ fi
 
 DISK=$1
 
-# Unmount any existing partitions on the target disk to prevent errors
+# Unmount any existing partitions and turn off swap on the target disk
 umount -R /mnt &>/dev/null || true
 for part in $(lsblk -nr -o NAME -p "$DISK"); do
     if [[ "$part" != "$DISK" ]]; then
+        swapoff "$part" &>/dev/null || true
         umount "$part" &>/dev/null || true
     fi
 done
