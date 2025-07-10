@@ -70,17 +70,26 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # 8. Enable Multilib and Community repositories
 info "Enabling Community and Multilib repositories..."
-# The user's definitive fix using a more robust, multi-step sed command
-sed -i 's/^#\\[community\\]/[community]/g' /etc/pacman.conf
-sed -i '/\\[community\\]/{n;s/^#//}' /etc/pacman.conf
-sed -i 's/^#\\[multilib\\]/[multilib]/g' /etc/pacman.conf
-sed -i '/\\[multilib\\]/{n;s/^#//}' /etc/pacman.conf
+
+# --- DELETE ALL PREVIOUS 'sed' COMMANDS ---
+
+# --- And REPLACE them with this foolproof append method ---
+{
+    echo ""
+    echo "[community]"
+    echo "Include = /etc/pacman.d/mirrorlist"
+    echo ""
+    echo "[multilib]"
+    echo "Include = /etc/pacman.d/mirrorlist"
+} >> /etc/pacman.conf
+
 success "Repositories enabled."
 
+# The rest of the script remains the same
 # 9. Synchronize package databases FIRST
 info "Synchronizing package databases..."
 pacman -Syyu --noconfirm || error "Failed to synchronize package databases."
-success "Package databases synchronized."
+# ...
 
 # 10. Install core build tools, KDE Plasma, and Applications
 info "Installing core build tools, KDE, and all other software..."
