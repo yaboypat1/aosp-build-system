@@ -68,7 +68,8 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # --- Software Installation ---
 
-# 8. Enable Multilib repository for 32-bit libraries
+# 8. Enable Community and Multilib repositories
+sed -i "/^\[community\]$/,/^\[/ s/^#//" /etc/pacman.conf
 sed -i "/^\[multilib\]$/,/^\[/ s/^#//" /etc/pacman.conf
 
 # 9. Synchronize package databases and install core build tools
