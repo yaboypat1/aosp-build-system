@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LC_ALL=C
+
 # Main installer script for the Arch Linux Build Environment
 
 # Color Codes
@@ -41,7 +43,7 @@ reflector --verbose --country 'United States','Canada' --age 12 --protocol https
 
 # Verify that the mirrorlist is not empty
 if [ ! -s /etc/pacman.d/mirrorlist ]; then
-    error "Reflector created an empty mirrorlist. Please check network connection and VM settings."
+    error "Reflector created an empty mirrorlist. Please check your network connection and settings."
 fi
 
 success "Mirrorlist updated."

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LC_ALL=C
+
 # This script partitions and formats the disk.
 # WARNING: This will destroy all data on the specified disk.
 

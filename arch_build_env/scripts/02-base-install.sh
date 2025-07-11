@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LC_ALL=C
+
 # This script installs the base Arch Linux system.
 
 # --- Error Handling & Color Codes ---

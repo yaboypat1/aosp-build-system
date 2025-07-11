@@ -3,14 +3,15 @@
 # Android 16 AOSP Build Script
 # Builds Android 16 with optional custom ROM integration
 
-set -e  # Exit on any error
+set -e
+export LC_ALL=C
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Logging functions
 log_info() {
@@ -56,7 +57,7 @@ usage() {
     echo
     echo "Examples:"
     echo "  $0                           # Build aosp_x86_64-userdebug"
-    echo "  $0 pixel7 user              # Build aosp_pixel7-user"
+    echo "  $0 komodo user               # Build aosp_komodo-user"
     echo "  $0 generic eng --clean      # Clean build of aosp_generic-eng"
     echo "  $0 --images                 # Build system images only"
 }
@@ -73,7 +74,7 @@ parse_arguments() {
     RECOVERY_ONLY=false
     OTA_PACKAGE=false
     FORCE_CCACHE=""
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -j|--jobs)
@@ -135,7 +136,7 @@ parse_arguments() {
                 ;;
         esac
     done
-    
+
     # Set defaults
     DEVICE_CODENAME=${DEVICE_CODENAME:-"x86_64"}
     BUILD_VARIANT=${BUILD_VARIANT:-"userdebug"}
@@ -145,55 +146,52 @@ parse_arguments() {
 # Check prerequisites
 check_prerequisites() {
     log_info "Checking build prerequisites..."
-    
-    # Check if AOSP source exists
+
     if [ ! -d "aosp" ] || [ ! -f "aosp/build/envsetup.sh" ]; then
         log_error "AOSP source not found. Please run download_aosp.sh first"
         exit 1
     fi
-    
-    # Check disk space (need at least 150GB for build)
+
     DISK_SPACE_GB=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
     if [ "$DISK_SPACE_GB" -lt 150 ]; then
         log_error "Insufficient disk space. Need at least 150GB for build, have ${DISK_SPACE_GB}GB"
         exit 1
     fi
-    
-    # Check RAM (warn if less than 16GB)
+
     RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
     if [ "$RAM_GB" -lt 16 ]; then
         log_warning "Low RAM detected (${RAM_GB}GB). Build may be slow or fail"
         log_warning "Consider reducing parallel jobs or adding swap space"
     fi
-    
+
     log_success "Prerequisites check passed"
 }
 
 # Load build configuration
 load_build_config() {
     log_info "Loading build configuration..."
-    
-    # Load main build config
+
     if [ -f "build_config.sh" ]; then
         source build_config.sh
         log_info "Loaded main build configuration"
     fi
-    
-    # Load device-specific config if it exists
-    DEVICE_CONFIG="device_configs/$DEVICE_CODENAME/build_config.sh"
+
+    # Check for device manufacturer to construct path
+    # This allows for device_configs/google/komodo, device_configs/oneplus/op9, etc.
+    DEVICE_MANUFACTURER=$(grep -oP 'DEVICE_MANUFACTURER="\K[^"]+' "device_configs/google/${DEVICE_CODENAME}/build_config.sh" 2>/dev/null || echo "generic")
+    DEVICE_CONFIG="device_configs/${DEVICE_MANUFACTURER}/${DEVICE_CODENAME}/build_config.sh"
+
     if [ -f "$DEVICE_CONFIG" ]; then
         source "$DEVICE_CONFIG"
         log_info "Loaded device configuration for $DEVICE_CODENAME"
     fi
-    
-    # Override with command line arguments
+
     if [ -n "$FORCE_CCACHE" ]; then
         export USE_CCACHE="$FORCE_CCACHE"
     fi
-    
-    # Set build target
+
     BUILD_TARGET="aosp_${DEVICE_CODENAME}-${BUILD_VARIANT}"
-    
+
     log_info "Build configuration:"
     log_info "  Target: $BUILD_TARGET"
     log_info "  Jobs: $BUILD_JOBS"
@@ -204,29 +202,24 @@ load_build_config() {
 # Setup build environment
 setup_build_environment() {
     log_info "Setting up build environment..."
-    
     cd aosp
-    
-    # Source build environment
+
     source build/envsetup.sh
-    
-    # Select build target
+
     log_info "Selecting build target: $BUILD_TARGET"
     lunch "$BUILD_TARGET"
-    
-    # Setup ccache if enabled
+
     if [ "${USE_CCACHE}" = "1" ]; then
         log_info "ccache enabled with directory: ${CCACHE_DIR:-~/.ccache}"
         export USE_CCACHE=1
         export CCACHE_DIR=${CCACHE_DIR:-~/.ccache}
         
-        # Show ccache stats
         if command -v ccache &> /dev/null; then
             log_info "ccache status:"
             ccache -s | head -5
         fi
     fi
-    
+
     log_success "Build environment ready"
 }
 
@@ -234,14 +227,11 @@ setup_build_environment() {
 clean_build() {
     if [ "$CLEAN_BUILD" = true ]; then
         log_info "Cleaning previous build artifacts..."
-        
-        # Clean output directory
         if [ -d "out" ]; then
             rm -rf out
             log_info "Removed out/ directory"
         fi
-        
-        # Clean ccache if requested
+
         if [ "${USE_CCACHE}" = "1" ] && command -v ccache &> /dev/null; then
             read -p "Clean ccache as well? (y/N): " -n 1 -r
             echo
@@ -260,11 +250,10 @@ build_android() {
     log_info "Starting Android build..."
     log_info "Build target: $BUILD_TARGET"
     log_info "Parallel jobs: $BUILD_JOBS"
-    
-    # Determine what to build
+
     BUILD_COMMAND="m"
     BUILD_TARGETS=""
-    
+
     if [ "$KERNEL_ONLY" = true ]; then
         BUILD_TARGETS="bootimage"
         log_info "Building kernel and boot image only"
@@ -281,19 +270,17 @@ build_android() {
         BUILD_COMMAND="make"
         log_info "Full build (make)"
     else
-        # Default build
         log_info "Building Android (default targets)"
     fi
-    
-    # Execute build
+
     if [ -n "$BUILD_TARGETS" ]; then
         $BUILD_COMMAND -j"$BUILD_JOBS" $BUILD_TARGETS
     else
         $BUILD_COMMAND -j"$BUILD_JOBS"
     fi
-    
+
     BUILD_EXIT_CODE=$?
-    
+
     if [ $BUILD_EXIT_CODE -eq 0 ]; then
         log_success "Android build completed successfully!"
     else
@@ -309,7 +296,7 @@ show_build_results() {
     BUILD_HOURS=$((BUILD_DURATION / 3600))
     BUILD_MINUTES=$(((BUILD_DURATION % 3600) / 60))
     BUILD_SECONDS=$((BUILD_DURATION % 60))
-    
+
     log_success "Build completed successfully!"
     echo
     log_info "Build Summary:"
@@ -318,13 +305,11 @@ show_build_results() {
     echo "  Jobs: $BUILD_JOBS"
     echo "  ccache: ${USE_CCACHE:-0}"
     echo
-    
-    # Show output files
+
     if [ -d "out/target/product/$DEVICE_CODENAME" ]; then
         OUTPUT_DIR="out/target/product/$DEVICE_CODENAME"
         log_info "Build artifacts location: $OUTPUT_DIR"
         
-        # List important files
         echo "Key files generated:"
         if [ -f "$OUTPUT_DIR/system.img" ]; then
             echo "  - system.img ($(du -h $OUTPUT_DIR/system.img | cut -f1))"
@@ -341,18 +326,17 @@ show_build_results() {
         if [ -f "$OUTPUT_DIR"/*-img-*.zip ]; then
             echo "  - Fastboot images: $(ls $OUTPUT_DIR/*-img-*.zip | head -1 | xargs basename)"
         fi
-        
+
         echo
         log_info "Total build output size: $(du -sh $OUTPUT_DIR | cut -f1)"
     fi
-    
-    # Show ccache stats if enabled
+
     if [ "${USE_CCACHE}" = "1" ] && command -v ccache &> /dev/null; then
         echo
         log_info "ccache statistics:"
         ccache -s | head -10
     fi
-    
+
     echo
     log_info "Next steps:"
     echo "1. Flash images to device using fastboot"
@@ -363,7 +347,7 @@ show_build_results() {
 # Main execution
 main() {
     log_info "Starting Android 16 AOSP build process..."
-    
+
     parse_arguments "$@"
     check_prerequisites
     load_build_config
@@ -372,7 +356,7 @@ main() {
     build_android
     show_build_results
     
-    cd ..  # Return to main directory
+    cd ..
 }
 
 # Run main function

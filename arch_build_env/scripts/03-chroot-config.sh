@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LC_ALL=C
+
 # This script is run inside the chroot environment to configure the new system.
 
 # --- Error Handling & Color Codes ---
@@ -116,16 +118,7 @@ success "Android dependencies installed."
 # 12. Enable the graphical login manager now that it's installed
 systemctl enable sddm
 
-# 13. Install VM Guest Utilities
-# Detect virtualization and install appropriate tools
-if systemd-detect-virt -q --container; then
-    echo "Running in a container, skipping guest utils."
-elif systemd-detect-virt -q --vm; then
-    pacman -S --noconfirm --needed virtualbox-guest-utils open-vm-tools
-    systemctl enable vboxservice || true # Fails if not in VirtualBox
-    systemctl enable vmtoolsd || true    # Fails if not in VMware
-    systemctl enable vmware-vmblock-fuse || true
-fi
+
 
 # --- Final Touches ---
 
