@@ -70,28 +70,21 @@ echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
 # --- Software Installation ---
 
-# 8. Enable Multilib and Community repositories
-info "Enabling Community and Multilib repositories..."
+# 8. Enable Multilib repository
+info "Enabling Multilib repository..."
 
-# --- DELETE ALL PREVIOUS 'sed' COMMANDS ---
-
-# --- And REPLACE them with this foolproof append method ---
+# Add multilib repository
 {
-    echo ""
-    echo "[community]"
-    echo "Include = /etc/pacman.d/mirrorlist"
     echo ""
     echo "[multilib]"
     echo "Include = /etc/pacman.d/mirrorlist"
 } >> /etc/pacman.conf
 
-success "Repositories enabled."
+success "Repository enabled."
 
-# The rest of the script remains the same
-# 9. Synchronize package databases FIRST
+# 9. Synchronize package databases and update system
 info "Synchronizing package databases..."
 pacman -Syyu --noconfirm || error "Failed to synchronize package databases."
-# ...
 
 # 10. Install core build tools, KDE Plasma, and Applications
 info "Installing core build tools, KDE, and all other software..."
@@ -109,16 +102,14 @@ success "KDE and other packages installed."
 info "Installing Android build dependencies..."
 pacman -S --noconfirm --needed \
     jdk11-openjdk git gnupg flex bison gperf \
-    zip curl zlib lib32-zlib gcc-multilib g++-multilib \
+    zip curl zlib lib32-zlib gcc-multilib \
     lib32-ncurses libx11 lib32-glibc ccache \
     libglvnd libxml2 libxslt unzip schedtool python-setuptools \
     || error "Failed to install Android build dependencies."
 success "Android dependencies installed."
 
-# 12. Enable the graphical login manager now that it's installed
+# 12. Enable the graphical login manager
 systemctl enable sddm
-
-
 
 # --- Final Touches ---
 
@@ -136,10 +127,7 @@ paru -S --noconfirm google-repo
 EOF
 success "AUR helper and repo installed."
 
-# 15. Configure a Windows-like feel for KDE (optional, but nice for the user)
-# This is a bit complex to do via script, but we can set some basics.
-# The user can further customize using the GUI.
-
-# Set a default wallpaper or theme if desired (requires more setup)
+# 15. Configure a default desktop environment
+# The user can further customize using the GUI
 
 echo "Chroot configuration complete."
