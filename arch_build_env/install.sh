@@ -38,8 +38,8 @@ check_internet
 
 info "Updating mirrorlist for faster downloads..."
 pacman -Sy --noconfirm reflector || error "Failed to install reflector."
-# A more robust reflector command with better filtering and verbose output for debugging
-reflector --verbose --country 'United States','Canada' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || error "Reflector failed to run."
+# A more robust reflector command with better filtering and verbose output
+reflector --verbose --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || error "Reflector failed to run."
 
 # Verify that the mirrorlist is not empty
 if [ ! -s /etc/pacman.d/mirrorlist ]; then
