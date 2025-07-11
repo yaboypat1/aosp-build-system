@@ -1,5 +1,27 @@
 # Android 16 AOSP Build System .gitignore
 
+# Ignore the entire AOSP source directory. It's managed by the 'repo' tool.
+aosp_source/
+
+# Ignore the AOSP build output directory
+out/
+
+# Ignore the .repo directory created by the repo tool inside the scripts folder
+scripts/.repo/
+
+# Ignore generated ISO files from the Arch build environment
+arch_build_env/*.iso
+
+# Ignore log files
+*.log
+
+# Ignore Python cache
+__pycache__/
+
+# Ignore editor swap files
+*.swo
+*.swp
+
 # Build outputs
 out/
 *.img
