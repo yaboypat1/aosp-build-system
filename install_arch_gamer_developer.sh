@@ -68,8 +68,8 @@ mkfs.fat -F32 ${DRIVE}p1
 
 # LUKS encryption setup
 echo "🔐 Setting up LUKS encryption on ${DRIVE}p2..."
-echo "$ENCRYPTION_PASS" | cryptsetup luksFormat --batch-mode ${DRIVE}p2 -
-echo "$ENCRYPTION_PASS" | cryptsetup luksOpen ${DRIVE}p2 luks_root -
+printf '%s' "$ENCRYPTION_PASS" | cryptsetup luksFormat --type luks2 --batch-mode ${DRIVE}p2
+printf '%s' "$ENCRYPTION_PASS" | cryptsetup open ${DRIVE}p2 luks_root
 
 # BTRFS setup
 echo "🪵 Creating and mounting BTRFS subvolumes..."
