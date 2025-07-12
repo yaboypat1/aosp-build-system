@@ -21,6 +21,10 @@ PACKAGES_AI="python-pytorch-cuda python-tensorflow-cuda jupyterlab"
 PACKAGES_VIRTUALIZATION="qemu-full libvirt virt-manager"
 ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION"
 
+echo "⚠️ WARNING: This will erase and encrypt all data on $DRIVE."
+lsblk
+read -p "⚠️ Confirm that $DRIVE is correct and you wish to continue. Press Enter to continue or Ctrl+C to cancel."
+
 # === PREPARE NETWORK + MIRRORS ===
 echo "🌐 Setting up fresh mirrors..."
 pacman -Sy --noconfirm reflector
@@ -36,11 +40,20 @@ sgdisk -n 1:0:+512MiB -t 1:ef00 -c 1:"EFI System" $DRIVE
 sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux BTRFS" $DRIVE
 mkfs.fat -F32 ${DRIVE}p1
 
-echo "$ENCRYPTION_PASS" | cryptsetup luksFormat ${DRIVE}p2 -
+# === WIPE EXISTING LUKS HEADERS IF ANY ===
+echo "💥 Wiping old LUKS header (if any) on ${DRIVE}p2..."
+cryptsetup close luks_root || true
+wipefs --all --force ${DRIVE}p2
+
+# === ENCRYPT AND OPEN LUKS CONTAINER ===
+echo "🔐 Formatting ${DRIVE}p2 with LUKS encryption..."
+echo "$ENCRYPTION_PASS" | cryptsetup luksFormat --batch-mode ${DRIVE}p2 -
+echo "🔓 Opening encrypted LUKS volume..."
 echo "$ENCRYPTION_PASS" | cryptsetup luksOpen ${DRIVE}p2 luks_root -
-mkfs.btrfs /dev/mapper/luks_root
 
 # === BTRFS SUBVOLUMES ===
+echo "🪵 Creating BTRFS subvolumes..."
+mkfs.btrfs /dev/mapper/luks_root
 mount /dev/mapper/luks_root /mnt
 btrfs subvolume create /mnt/@
 btrfs subvolume create /mnt/@home
@@ -49,6 +62,7 @@ btrfs subvolume create /mnt/@var_log
 btrfs subvolume create /mnt/@var_cache
 umount /mnt
 
+echo "🔗 Mounting subvolumes..."
 mount -o compress=zstd,noatime,subvol=@ /dev/mapper/luks_root /mnt
 mkdir -p /mnt/{boot/efi,home,.snapshots,var/log,var/cache}
 mount -o compress=zstd,noatime,subvol=@home /dev/mapper/luks_root /mnt/home
@@ -69,9 +83,11 @@ echo "📦 Installing additional packages..."
 pacstrap /mnt $ALL_PACKAGES
 
 # === FSTAB ===
+echo "📝 Generating fstab..."
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # === POSTINSTALL SCRIPT ===
+echo "⚙️ Preparing postinstall script..."
 cat << EOF > /mnt/root/postinstall.sh
 #!/bin/bash
 set -euo pipefail
@@ -128,9 +144,10 @@ EOF
 
 chmod +x /mnt/root/postinstall.sh
 
-echo "🚪 Chrooting and running postinstall..."
+echo "🚪 Entering chroot to execute postinstall script..."
 arch-chroot /mnt /root/postinstall.sh
 
 # === CLEANUP ===
+echo "🧹 Cleaning up and unmounting..."
 umount -R /mnt
-echo "✅ Arch Linux installation complete on your Predator. Reboot and enjoy your system!"
+echo "✅ Arch Linux installation complete on your Predator. You may now reboot."
