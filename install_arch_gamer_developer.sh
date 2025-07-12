@@ -25,7 +25,7 @@ PACKAGES_AI="python-pytorch python-tensorflow jupyter-notebook python-pip python
 
 PACKAGES_VIRTUALIZATION="qemu-full virt-manager libvirt edk2-ovmf dnsmasq bridge-utils"
 
-PACKAGES_UTILITIES="firefox wget curl neofetch htop spectacle ark unzip p7zip kate network-manager-applet bluez bluez-utils pulseaudio-bluetooth"
+PACKAGES_UTILITIES="firefox wget curl htop spectacle ark unzip p7zip-full kate networkmanager bluez bluez-utils"
 
 # Combine all packages
 ALL_PACKAGES="$PACKAGES_BASE $PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION $PACKAGES_UTILITIES"
