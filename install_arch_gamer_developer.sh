@@ -30,6 +30,11 @@ echo "🌐 Setting up fresh mirrors..."
 pacman -Sy --noconfirm reflector
 reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
+# Enable multilib repository
+echo "📦 Enabling multilib repository..."
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+pacman -Sy --noconfirm
+
 # === ENABLE NTP ===
 timedatectl set-ntp true
 
