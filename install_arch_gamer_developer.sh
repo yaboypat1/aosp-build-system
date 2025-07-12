@@ -4,8 +4,8 @@
 DRIVE="/dev/nvme0n1"  # !! CHANGE THIS TO YOUR TARGET DRIVE !!
 HOSTNAME="ArchPredator"
 USERNAME="gamerdev"
-PASSWORD="your_password" # !! CHANGE THIS TO A SECURE PASSWORD !!
-ENCRYPTION_PASS="your_encryption_passphrase" # !! CHANGE THIS TO A SECURE PASSPHRASE !!
+PASSWORD="coolpat14" # !! CHANGE THIS TO A SECURE PASSWORD !!
+ENCRYPTION_PASS="1ekiglqaPhabi#" # !! CHANGE THIS TO A SECURE PASSPHRASE !!
 
 # Define the package list (Updated for AI, AOSP, and virtualization)
 PACKAGES_BASE="base linux linux-firmware intel-ucode"
