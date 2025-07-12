@@ -128,28 +128,28 @@ install_packages() {
 
 # === BASE INSTALLATION ===
 echo "📦 Installing base system..."
-pacstrap /mnt $PACKAGES_BASE || { echo "Failed to install base packages"; exit 1; }
+install_packages "$PACKAGES_BASE" || { echo "Failed to install base packages"; exit 1; }
 
 echo "📦 Installing desktop environment..."
-pacstrap /mnt $PACKAGES_DESKTOP || { echo "Failed to install desktop packages"; exit 1; }
+install_packages "$PACKAGES_DESKTOP" || { echo "Failed to install desktop packages"; exit 1; }
 
 echo "📦 Installing NVIDIA drivers..."
-pacstrap /mnt $PACKAGES_NVIDIA || { echo "Failed to install NVIDIA packages"; exit 1; }
+install_packages "$PACKAGES_NVIDIA" || { echo "Failed to install NVIDIA packages"; exit 1; }
 
 echo "📦 Installing gaming packages..."
-pacstrap /mnt $PACKAGES_GAMING || { echo "Failed to install gaming packages"; exit 1; }
+install_packages "$PACKAGES_GAMING" || { echo "Failed to install gaming packages"; exit 1; }
 
 echo "📦 Installing development tools..."
-pacstrap /mnt $PACKAGES_DEVELOPMENT || { echo "Failed to install development packages"; exit 1; }
+install_packages "$PACKAGES_DEVELOPMENT" || { echo "Failed to install development packages"; exit 1; }
 
 echo "📦 Installing Android/AOSP tools..."
-pacstrap /mnt $PACKAGES_ANDROID_AOSP || { echo "Failed to install Android tools"; exit 1; }
+install_packages "$PACKAGES_ANDROID_AOSP" || { echo "Failed to install Android tools"; exit 1; }
 
 echo "📦 Installing AI/ML packages..."
-pacstrap /mnt $PACKAGES_AI || { echo "Failed to install AI packages"; exit 1; }
+install_packages "$PACKAGES_AI" || { echo "Failed to install AI packages"; exit 1; }
 
 echo "📦 Installing virtualization packages..."
-pacstrap /mnt $PACKAGES_VIRTUALIZATION || { echo "Failed to install virtualization packages"; exit 1; }
+install_packages "$PACKAGES_VIRTUALIZATION" || { echo "Failed to install virtualization packages"; exit 1; }
 
 # === FSTAB ===
 echo "📝 Generating fstab..."
