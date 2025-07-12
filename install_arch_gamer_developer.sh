@@ -12,12 +12,12 @@ ENCRYPTION_PASS="1ekiglqaPhabi"
 
 # === PACKAGE GROUPS ===
 PACKAGES_BASE="base linux linux-firmware intel-ucode"
-PACKAGES_DESKTOP="plasma kde-applications sddm konsole dolphin"
-PACKAGES_NVIDIA="nvidia-dkms nvidia-utils lib32-nvidia-utils nvidia-settings nvidia-prime cuda cudnn"
-PACKAGES_GAMING="steam lutris wine gamemode mangohud"
-PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs-lts base-devel"
-PACKAGES_ANDROID_AOSP="android-tools android-udev openjdk"
-PACKAGES_AI="python-pytorch-cuda python-tensorflow-cuda jupyterlab"
+PACKAGES_DESKTOP="plasma-meta kde-applications sddm konsole dolphin"
+PACKAGES_NVIDIA="nvidia-dkms nvidia-utils lib32-nvidia-utils nvidia-settings"
+PACKAGES_GAMING="steam lutris wine-staging gamemode lib32-gamemode"
+PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs base-devel"
+PACKAGES_ANDROID_AOSP="android-tools android-udev jdk-openjdk"
+PACKAGES_AI="python-pytorch python-tensorflow python-jupyter"
 PACKAGES_VIRTUALIZATION="qemu-full libvirt virt-manager"
 ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION"
 
