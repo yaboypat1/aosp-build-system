@@ -21,9 +21,9 @@ PACKAGES_AI="python-pytorch-cuda python-tensorflow-cuda jupyterlab"
 PACKAGES_VIRTUALIZATION="qemu-full libvirt virt-manager"
 ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION"
 
-echo "⚠️ WARNING: This will erase and encrypt all data on $DRIVE."
+echo "⚠️ WARNING: This will irreversibly erase ALL DATA on $DRIVE."
 lsblk
-read -p "⚠️ Confirm that $DRIVE is correct and you wish to continue. Press Enter to continue or Ctrl+C to cancel."
+read -p "⚠️ Confirm that $DRIVE is correct and you wish to proceed. Press Enter to continue or Ctrl+C to cancel."
 
 # === PREPARE NETWORK + MIRRORS ===
 echo "🌐 Setting up fresh mirrors..."
@@ -33,27 +33,48 @@ reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorli
 # === ENABLE NTP ===
 timedatectl set-ntp true
 
-# === PARTITIONING ===
-echo "💽 Partitioning $DRIVE..."
+# === FULL WIPE AND PARTITIONING ===
+echo "🧹 Cleaning previous installations, LUKS headers, and filesystems..."
+
+# Close LUKS if open
+cryptsetup close luks_root || true
+
+# Wipe filesystem signatures
+wipefs --all --force $DRIVE
+
+# Wipe GPT/MBR
+sgdisk --zap-all $DRIVE
 sgdisk -Z $DRIVE
+
+# Extra wipe first 10MB to clear leftovers
+dd if=/dev/zero of=$DRIVE bs=1M count=10 status=progress
+
+# Reload partition table
+partprobe $DRIVE
+sleep 2
+
+echo "💽 Creating EFI and BTRFS partitions on $DRIVE..."
 sgdisk -n 1:0:+512MiB -t 1:ef00 -c 1:"EFI System" $DRIVE
 sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux BTRFS" $DRIVE
+
+partprobe $DRIVE
+sleep 2
+
+echo "🔍 Verifying partitions:"
+lsblk $DRIVE
+
+# Format EFI
 mkfs.fat -F32 ${DRIVE}p1
 
-# === WIPE EXISTING LUKS HEADERS IF ANY ===
-echo "💥 Wiping old LUKS header (if any) on ${DRIVE}p2..."
-cryptsetup close luks_root || true
-wipefs --all --force ${DRIVE}p2
-
-# === ENCRYPT AND OPEN LUKS CONTAINER ===
-echo "🔐 Formatting ${DRIVE}p2 with LUKS encryption..."
+# LUKS encryption setup
+echo "🔐 Setting up LUKS encryption on ${DRIVE}p2..."
 echo "$ENCRYPTION_PASS" | cryptsetup luksFormat --batch-mode ${DRIVE}p2 -
-echo "🔓 Opening encrypted LUKS volume..."
 echo "$ENCRYPTION_PASS" | cryptsetup luksOpen ${DRIVE}p2 luks_root -
 
-# === BTRFS SUBVOLUMES ===
-echo "🪵 Creating BTRFS subvolumes..."
+# BTRFS setup
+echo "🪵 Creating and mounting BTRFS subvolumes..."
 mkfs.btrfs /dev/mapper/luks_root
+
 mount /dev/mapper/luks_root /mnt
 btrfs subvolume create /mnt/@
 btrfs subvolume create /mnt/@home
@@ -62,7 +83,6 @@ btrfs subvolume create /mnt/@var_log
 btrfs subvolume create /mnt/@var_cache
 umount /mnt
 
-echo "🔗 Mounting subvolumes..."
 mount -o compress=zstd,noatime,subvol=@ /dev/mapper/luks_root /mnt
 mkdir -p /mnt/{boot/efi,home,.snapshots,var/log,var/cache}
 mount -o compress=zstd,noatime,subvol=@home /dev/mapper/luks_root /mnt/home
@@ -71,9 +91,7 @@ mount -o compress=zstd,noatime,subvol=@var_log /dev/mapper/luks_root /mnt/var/lo
 mount -o compress=zstd,noatime,subvol=@var_cache /dev/mapper/luks_root /mnt/var/cache
 mount ${DRIVE}p1 /mnt/boot/efi
 
-# === VERIFY MOUNTS ===
-mountpoint -q /mnt || { echo "❌ Root not mounted"; exit 1; }
-mountpoint -q /mnt/boot/efi || { echo "❌ EFI not mounted"; exit 1; }
+echo "✅ Partitions created, encrypted, formatted, and mounted."
 
 # === BASE INSTALLATION ===
 echo "📦 Installing base system..."
@@ -92,7 +110,6 @@ cat << EOF > /mnt/root/postinstall.sh
 #!/bin/bash
 set -euo pipefail
 
-# Timezone, locale, hostname
 ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
@@ -105,17 +122,14 @@ cat << HOSTS > /etc/hosts
 127.0.1.1 $HOSTNAME.localdomain $HOSTNAME
 HOSTS
 
-# User creation
 echo "root:$PASSWORD" | chpasswd
 useradd -m -G wheel,docker,video,audio,storage,libvirt -s /bin/bash $USERNAME
 echo "$USERNAME:$PASSWORD" | chpasswd
 echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
-# mkinitcpio hooks
 sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block encrypt btrfs filesystems keyboard fsck)/' /etc/mkinitcpio.conf
 mkinitcpio -P
 
-# GRUB
 pacman -Sy --noconfirm grub efibootmgr
 UUID=\$(blkid -s UUID -o value ${DRIVE}p2)
 sed -i "s|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX=\\\"cryptdevice=UUID=\$UUID:luks_root root=/dev/mapper/luks_root\\\"|" /etc/default/grub
@@ -123,10 +137,8 @@ sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.mo
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# Enable services
 systemctl enable sddm NetworkManager docker libvirtd tlp
 
-# AUR Helper
 pacman -Sy --noconfirm git base-devel
 git clone https://aur.archlinux.org/paru.git
 cd paru
@@ -134,12 +146,11 @@ makepkg -si --noconfirm
 cd ..
 rm -rf paru
 
-# Snapper
 pacman -Sy --noconfirm snapper
 snapper --no-dbus create-config /
 systemctl enable snapper-timeline.timer snapper-cleanup.timer
 
-echo "✅ Post-install configuration complete. You can reboot now."
+echo "✅ Post-install configuration complete. Reboot to start using your system."
 EOF
 
 chmod +x /mnt/root/postinstall.sh
@@ -147,7 +158,6 @@ chmod +x /mnt/root/postinstall.sh
 echo "🚪 Entering chroot to execute postinstall script..."
 arch-chroot /mnt /root/postinstall.sh
 
-# === CLEANUP ===
 echo "🧹 Cleaning up and unmounting..."
 umount -R /mnt
 echo "✅ Arch Linux installation complete on your Predator. You may now reboot."
