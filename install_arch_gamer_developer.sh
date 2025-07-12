@@ -107,6 +107,25 @@ mount ${DRIVE}p1 /mnt/boot/efi
 
 echo "✅ Partitions created, encrypted, formatted, and mounted."
 
+# Function to retry package installation
+install_packages() {
+    local packages="$1"
+    local attempt=1
+    local max_attempts=3
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "📦 Installation attempt $attempt of $max_attempts..."
+        if pacstrap /mnt $packages; then
+            return 0
+        fi
+        echo "⚠️ Attempt $attempt failed. Refreshing mirrors..."
+        arch-chroot /mnt pacman -Syy
+        ((attempt++))
+        sleep 5
+    done
+    return 1
+}
+
 # === BASE INSTALLATION ===
 echo "📦 Installing base system..."
 pacstrap /mnt $PACKAGES_BASE || { echo "Failed to install base packages"; exit 1; }
