@@ -28,7 +28,16 @@ read -p "⚠️ Confirm that $DRIVE is correct and you wish to proceed. Press En
 # === PREPARE NETWORK + MIRRORS ===
 echo "🌐 Setting up fresh mirrors..."
 pacman -Sy --noconfirm reflector
-reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+echo "📡 Finding fastest mirrors..."
+reflector --latest 20 \
+    --protocol https \
+    --sort rate \
+    --country 'United States' \
+    --fastest 10 \
+    --save /etc/pacman.d/mirrorlist
+
+# Refresh package databases
+pacman -Syy
 
 # Enable multilib repository
 echo "📦 Enabling multilib repository..."
