@@ -220,4 +220,7 @@ arch-chroot /mnt systemctl enable bluetooth
 # Enable TRIM for SSDs
 arch-chroot /mnt systemctl enable fstrim.timer
 
+# Install additional utilities from pacman
+arch-chroot /mnt pacman -S --noconfirm neofetch
+
 echo "✅ Installation complete! You can now reboot."
