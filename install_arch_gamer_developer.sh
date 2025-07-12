@@ -7,8 +7,8 @@ trap 'echo "❌ Error on line $LINENO"; exit 1' ERR
 DRIVE="/dev/nvme0n1"
 HOSTNAME="ArchPredator"
 USERNAME="gamerdev"
-PASSWORD="YourSecurePassword"
-ENCRYPTION_PASS="YourSecureEncryptionPass"
+PASSWORD="coolpat14"
+ENCRYPTION_PASS="1ekiglqaPhabi#"
 
 # === PACKAGE GROUPS ===
 PACKAGES_BASE="base linux linux-firmware intel-ucode"
