@@ -11,15 +11,26 @@ PASSWORD="coolpat14"
 ENCRYPTION_PASS="1ekiglqaPhabi"
 
 # === PACKAGE GROUPS ===
-PACKAGES_BASE="base linux linux-firmware intel-ucode"
-PACKAGES_DESKTOP="plasma-desktop sddm konsole dolphin plasma-wayland-session"
+PACKAGES_BASE="base base-devel linux linux-firmware intel-ucode sudo"
+
+PACKAGES_DESKTOP="plasma-desktop plasma-wayland-protocols plasma-workspace sddm konsole dolphin plasma-pa plasma-nm powerdevil kscreen plasma-systemmonitor kde-gtk-config breeze-gtk xdg-desktop-portal-kde packagekit-qt5 kwallet-pam ksshaskpass kwalletmanager"
+
 PACKAGES_NVIDIA="nvidia nvidia-utils lib32-nvidia-utils nvidia-settings"
-PACKAGES_AI="python-pytorch python-tensorflow jupyter-notebook python-pip python-scikit-learn"
-PACKAGES_GAMING="steam lutris wine wine-gecko wine-mono gamemode lib32-gamemode"
-PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs npm base-devel"
-PACKAGES_ANDROID_AOSP="android-tools android-udev jdk17-openjdk"
-PACKAGES_VIRTUALIZATION="qemu-full virt-manager libvirt edk2-ovmf dnsmasq"
-ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION"
+
+PACKAGES_GAMING="steam lutris wine wine-gecko wine-mono gamemode lib32-gamemode discord"
+
+PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs npm cmake gcc gdb make"
+
+PACKAGES_ANDROID_AOSP="android-tools android-udev jdk17-openjdk repo"
+
+PACKAGES_AI="python-pytorch python-tensorflow jupyter-notebook python-pip python-scikit-learn python-pandas python-numpy"
+
+PACKAGES_VIRTUALIZATION="qemu-full virt-manager libvirt edk2-ovmf dnsmasq bridge-utils"
+
+# Additional utilities that are commonly needed
+PACKAGES_UTILITIES="firefox wget curl neofetch htop spectacle ark unzip p7zip kate network-manager-applet bluez bluez-utils pulseaudio-bluetooth"
+
+ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION $PACKAGES_UTILITIES"
 
 echo "⚠️ WARNING: This will irreversibly erase ALL DATA on $DRIVE."
 lsblk
