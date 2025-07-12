@@ -1,57 +1,46 @@
 #!/bin/bash
 
-# Define variables
-DRIVE="/dev/nvme0n1"  # !! CHANGE THIS TO YOUR TARGET DRIVE !!
+set -euo pipefail
+trap 'echo "❌ Error on line $LINENO"; exit 1' ERR
+
+# === CONFIGURABLE VARIABLES ===
+DRIVE="/dev/nvme0n1"
 HOSTNAME="ArchPredator"
 USERNAME="gamerdev"
-PASSWORD="coolpat14" # !! CHANGE THIS TO A SECURE PASSWORD !!
-ENCRYPTION_PASS="1ekiglqaPhabi#" # !! CHANGE THIS TO A SECURE PASSPHRASE !!
+PASSWORD="YourSecurePassword"
+ENCRYPTION_PASS="YourSecureEncryptionPass"
 
-# Define the package list (Updated for AI, AOSP, and virtualization)
+# === PACKAGE GROUPS ===
 PACKAGES_BASE="base linux linux-firmware intel-ucode"
-PACKAGES_DESKTOP="plasma kde-applications sddm konsole dolphin" # KDE Plasma Desktop
-PACKAGES_NVIDIA="nvidia-dkms nvidia-utils lib32-nvidia-utils nvidia-settings nvidia-prime cuda cudnn" # Added cuda and cudnn for AI
+PACKAGES_DESKTOP="plasma kde-applications sddm konsole dolphin"
+PACKAGES_NVIDIA="nvidia-dkms nvidia-utils lib32-nvidia-utils nvidia-settings nvidia-prime cuda cudnn"
 PACKAGES_GAMING="steam lutris wine gamemode mangohud"
-PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs-lts-gallium base-devel" # base-devel is crucial for building software like AOSP
-PACKAGES_AI="python-pytorch-cuda python-tensorflow-cuda jupyterlab" # Deep learning libraries (Note: often better installed via Python virtual environments)
-PACKAGES_ANDROID_AOSP="android-tools android-udev openjdk-devel git" # Basic Android tools and Java for AOSP
-PACKAGES_VIRTUALIZATION="qemu libvirt virt-manager"
+PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs-lts base-devel"
+PACKAGES_ANDROID_AOSP="android-tools android-udev openjdk"
+PACKAGES_AI="python-pytorch-cuda python-tensorflow-cuda jupyterlab"
+PACKAGES_VIRTUALIZATION="qemu-full libvirt virt-manager"
+ALL_PACKAGES="$PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_ANDROID_AOSP $PACKAGES_AI $PACKAGES_VIRTUALIZATION"
 
-# Consolidate all packages for installation
-ALL_PACKAGES="$PACKAGES_BASE $PACKAGES_DESKTOP $PACKAGES_NVIDIA $PACKAGES_GAMING $PACKAGES_DEVELOPMENT $PACKAGES_AI $PACKAGES_ANDROID_AOSP $PACKAGES_VIRTUALIZATION"
+# === PREPARE NETWORK + MIRRORS ===
+echo "🌐 Setting up fresh mirrors..."
+pacman -Sy --noconfirm reflector
+reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
-# --- Installation Steps (Modified Sections) ---
-
-# 1. Update system clock
+# === ENABLE NTP ===
 timedatectl set-ntp true
 
-# 2. Disk Partitioning (Automated BTRFS + LUKS Encryption)
-# (Same as previous script - omitted for brevity, handles partitioning and LUKS setup)
-echo "Partitioning $DRIVE and setting up LUKS encrypted BTRFS..."
-
-# Clear partition table
+# === PARTITIONING ===
+echo "💽 Partitioning $DRIVE..."
 sgdisk -Z $DRIVE
-
-# Create EFI partition (512MB)
 sgdisk -n 1:0:+512MiB -t 1:ef00 -c 1:"EFI System" $DRIVE
-
-# Create encrypted BTRFS partition (rest of the drive)
 sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux BTRFS" $DRIVE
+mkfs.fat -F32 ${DRIVE}p1
 
-# Format EFI partition
-mkfs.fat -F 32 ${DRIVE}p1
-
-# Setup LUKS encryption on the main partition
-echo -n "$ENCRYPTION_PASS" | cryptsetup luksFormat ${DRIVE}p2 -
-echo -n "$ENCRYPTION_PASS" | cryptsetup luksOpen ${DRIVE}p2 luks_root -
-
-# 3. BTRFS Subvolumes and Formatting
-# (Same as previous script - handles BTRFS formatting and subvolume mounting)
-
-# Create BTRFS filesystem on the opened encrypted volume
+echo "$ENCRYPTION_PASS" | cryptsetup luksFormat ${DRIVE}p2 -
+echo "$ENCRYPTION_PASS" | cryptsetup luksOpen ${DRIVE}p2 luks_root -
 mkfs.btrfs /dev/mapper/luks_root
 
-# Create subvolumes (for BTRFS snapshots)
+# === BTRFS SUBVOLUMES ===
 mount /dev/mapper/luks_root /mnt
 btrfs subvolume create /mnt/@
 btrfs subvolume create /mnt/@home
@@ -60,90 +49,88 @@ btrfs subvolume create /mnt/@var_log
 btrfs subvolume create /mnt/@var_cache
 umount /mnt
 
-# Mount subvolumes
 mount -o compress=zstd,noatime,subvol=@ /dev/mapper/luks_root /mnt
-mkdir -p /mnt/{home,.snapshots,var/log,var/cache}
+mkdir -p /mnt/{boot/efi,home,.snapshots,var/log,var/cache}
 mount -o compress=zstd,noatime,subvol=@home /dev/mapper/luks_root /mnt/home
 mount -o compress=zstd,noatime,subvol=@.snapshots /dev/mapper/luks_root /mnt/.snapshots
 mount -o compress=zstd,noatime,subvol=@var_log /dev/mapper/luks_root /mnt/var/log
 mount -o compress=zstd,noatime,subvol=@var_cache /dev/mapper/luks_root /mnt/var/cache
-
-# Mount EFI partition
-mkdir -p /mnt/boot/efi
 mount ${DRIVE}p1 /mnt/boot/efi
 
-# 4. Install packages
-echo "Installing all packages..."
+# === VERIFY MOUNTS ===
+mountpoint -q /mnt || { echo "❌ Root not mounted"; exit 1; }
+mountpoint -q /mnt/boot/efi || { echo "❌ EFI not mounted"; exit 1; }
+
+# === BASE INSTALLATION ===
+echo "📦 Installing base system..."
+pacstrap /mnt $PACKAGES_BASE
+
+echo "📦 Installing additional packages..."
 pacstrap /mnt $ALL_PACKAGES
 
-# 5. Fstab generation
+# === FSTAB ===
 genfstab -U /mnt >> /mnt/etc/fstab
 
-# 6. Chroot into the new system and configure
+# === POSTINSTALL SCRIPT ===
+cat << EOF > /mnt/root/postinstall.sh
+#!/bin/bash
+set -euo pipefail
 
-echo "Entering chroot environment for configuration..."
-arch-chroot /mnt /bin/bash <<EOF
-# Set timezone, locale, and hostname (Same as previous script)
+# Timezone, locale, hostname
 ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 echo "$HOSTNAME" > /etc/hostname
-echo "127.0.0.1 localhost" >> /etc/hosts
-echo "::1 localhost" >> /etc/hosts
-echo "127.0.1.1 $HOSTNAME.localdomain $HOSTNAME" >> /etc/hosts
+cat << HOSTS > /etc/hosts
+127.0.0.1 localhost
+::1       localhost
+127.0.1.1 $HOSTNAME.localdomain $HOSTNAME
+HOSTS
 
-# Root password and user creation (Same as previous script)
+# User creation
 echo "root:$PASSWORD" | chpasswd
-useradd -m -G wheel,docker,video,audio,storage -s /bin/bash $USERNAME
+useradd -m -G wheel,docker,video,audio,storage,libvirt -s /bin/bash $USERNAME
 echo "$USERNAME:$PASSWORD" | chpasswd
 echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
-# 7. Bootloader installation (GRUB)
-pacman -S --noconfirm grub efibootmgr
-echo "GRUB_CMDLINE_LINUX=\"cryptdevice=UUID=$(blkid -s UUID -o value ${DRIVE}p2):luks_root root=/dev/mapper/luks_root\"" >> /etc/default/grub
-# Ensure nvidia_drm.modeset=1 for optimal NVIDIA performance, especially with Wayland/KDE
+# mkinitcpio hooks
+sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block encrypt btrfs filesystems keyboard fsck)/' /etc/mkinitcpio.conf
+mkinitcpio -P
+
+# GRUB
+pacman -Sy --noconfirm grub efibootmgr
+UUID=\$(blkid -s UUID -o value ${DRIVE}p2)
+sed -i "s|GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX=\\\"cryptdevice=UUID=\$UUID:luks_root root=/dev/mapper/luks_root\\\"|" /etc/default/grub
 sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' /etc/default/grub
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# 8. Post-installation setup
+# Enable services
+systemctl enable sddm NetworkManager docker libvirtd tlp
 
-# Enable essential services
-systemctl enable sddm.service
-systemctl enable docker.service
-systemctl enable NetworkManager.service
-systemctl enable libvirtd.service # Enable Libvirt service for virtualization
-systemctl enable tlp.service
-
-# Add user to libvirt group for virtualization management
-usermod -aG libvirt $USERNAME
-
-# 9. Install AUR helper (yay) and configure Snapper (Same as previous script)
-echo "Installing yay (AUR helper)..."
-git clone https://aur.archlinux.org/yay.git
-cd yay
+# AUR Helper
+pacman -Sy --noconfirm git base-devel
+git clone https://aur.archlinux.org/paru.git
+cd paru
 makepkg -si --noconfirm
 cd ..
-rm -rf yay
+rm -rf paru
 
-# Configure Snapper
-pacman -S --noconfirm snapper
+# Snapper
+pacman -Sy --noconfirm snapper
 snapper --no-dbus create-config /
-btrfs subvolume snapshot /mnt /mnt/.snapshots/root_snapshot
 systemctl enable snapper-timeline.timer snapper-cleanup.timer
 
-# AOSP build dependencies check: We have `base-devel`, `git`, and `openjdk-devel` installed, which are crucial.
-# Note: Complex AOSP building often requires specific Python versions and environment variables that are typically configured by the user after installation using `repo` and `envsetup.sh`.
-
-# AI/CUDA setup notes:
-# CUDA and cuDNN are installed. Python libraries (PyTorch, TensorFlow) are installed.
-# For serious development, users should often use Python virtual environments, but these packages provide system-level availability.
-
-exit
+echo "✅ Post-install configuration complete. You can reboot now."
 EOF
 
-# 10. Clean up and completion
+chmod +x /mnt/root/postinstall.sh
+
+echo "🚪 Chrooting and running postinstall..."
+arch-chroot /mnt /root/postinstall.sh
+
+# === CLEANUP ===
 umount -R /mnt
-echo "Arch Linux installation complete. The system is now ready for gaming, development, AI, and complex tasks."
+echo "✅ Arch Linux installation complete on your Predator. Reboot and enjoy your system!"
