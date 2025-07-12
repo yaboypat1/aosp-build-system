@@ -8,7 +8,7 @@ DRIVE="/dev/nvme0n1"
 HOSTNAME="ArchPredator"
 USERNAME="gamerdev"
 PASSWORD="coolpat14"
-ENCRYPTION_PASS="1ekiglqaPhabi#"
+ENCRYPTION_PASS="1ekiglqaPhabi"
 
 # === PACKAGE GROUPS ===
 PACKAGES_BASE="base linux linux-firmware intel-ucode"
