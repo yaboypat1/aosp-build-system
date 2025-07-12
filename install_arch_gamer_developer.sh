@@ -13,9 +13,9 @@ PACKAGES_BASE="base base-devel linux linux-firmware intel-ucode sudo"
 
 PACKAGES_DESKTOP="plasma-desktop plasma-wayland-protocols plasma-workspace sddm konsole dolphin plasma-pa plasma-nm powerdevil kscreen plasma-systemmonitor kde-gtk-config breeze-gtk xdg-desktop-portal-kde packagekit-qt5 kwallet-pam ksshaskpass kwalletmanager"
 
-PACKAGES_NVIDIA="nvidia nvidia-utils lib32-nvidia-utils nvidia-settings"
+PACKAGES_NVIDIA="nvidia nvidia-utils nvidia-settings"
 
-PACKAGES_GAMING="steam lutris wine wine-gecko wine-mono gamemode lib32-gamemode discord"
+PACKAGES_GAMING="steam lutris wine wine-gecko wine-mono gamemode discord"
 
 PACKAGES_DEVELOPMENT="git docker docker-compose python python-pip nodejs npm cmake gcc gdb make"
 
@@ -42,8 +42,9 @@ reflector --latest 20 \
     --age 12 \
     --save /etc/pacman.d/mirrorlist
 
-# Refresh package databases
-pacman -Syy
+# Enable multilib repository
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+pacman -Syy  # Refresh package databases
 
 # === DISK PARTITIONING ===
 echo "💽 Partitioning disk..."
@@ -115,6 +116,13 @@ install_packages() {
 # === BASE INSTALLATION ===
 echo "📦 Installing base system..."
 install_packages "$PACKAGES_BASE" || { echo "Failed to install base packages"; exit 1; }
+
+# Enable multilib in the installed system
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /mnt/etc/pacman.conf
+arch-chroot /mnt pacman -Syy
+
+# Install 32-bit NVIDIA libraries
+arch-chroot /mnt pacman -S --noconfirm lib32-nvidia-utils
 
 echo "📦 Installing desktop environment..."
 install_packages "$PACKAGES_DESKTOP" || { echo "Failed to install desktop packages"; exit 1; }
